@@ -4,10 +4,16 @@ import (
 	"log"
 
 	"github.com/zondaf12/planner-app-backend/cmd/api"
+	"github.com/zondaf12/planner-app-backend/db"
 )
 
 func main() {
-	server := api.NewAPIServer(":8080", nil)
+	db, err := db.NewPGStorage()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	server := api.NewAPIServer(":8080", db)
 	if err := server.Start(); err != nil {
 		log.Fatal(err)
 	}
