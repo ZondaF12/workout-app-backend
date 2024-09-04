@@ -92,8 +92,8 @@ func (h *Handler) HandleLogin(c *fiber.Ctx) error {
 		return fiber.NewError(http.StatusInternalServerError, err.Error())
 	}
 
-	c.Response().Header.Set("Access-Control-Expose-Headers", "X-Token")
-	c.Response().Header.Set("X-Token", token)
+	c.Set("Access-Control-Expose-Headers", "X-Token")
+	c.Set("X-Token", token)
 
 	return c.Status(http.StatusOK).JSON(fiber.Map{"userId": u.ID.String()})
 }
