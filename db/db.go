@@ -1,29 +1,17 @@
 package db
 
 import (
-	"context"
-	"fmt"
+	"database/sql"
 	"log"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/zondaf12/planner-app-backend/config"
+	_ "github.com/lib/pq"
 )
 
-func NewPGStorage() (*pgx.Conn, error) {
-	databaseUrl := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
-		config.Envs.DBUser,
-		config.Envs.DBPassword,
-		config.Envs.DBAddress,
-		config.Envs.DBName,
-	)
-
-	conn, err := pgx.Connect(context.Background(), databaseUrl)
+func NewPGStorage(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer conn.Close(context.Background())
 
-	log.Println("Connected to database")
-
-	return conn, nil
+	return db, nil
 }
