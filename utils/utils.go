@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -20,5 +21,15 @@ func ParseJSON(c *fiber.Ctx, payload any) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid payload")
 	}
 
+	return nil
+}
+
+func ParseAndValidateJSON(c *fiber.Ctx, v interface{}) error {
+	if err := ParseJSON(c, v); err != nil {
+		return err
+	}
+	if err := Validate.Struct(v); err != nil {
+		return fmt.Errorf("invalid payload: %v", err)
+	}
 	return nil
 }

@@ -3,26 +3,38 @@ package api
 import (
 	"database/sql"
 	"log"
+	"os"
+	"os/signal"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/zondaf12/planner-app-backend/service/user"
 )
 
-type APIServer struct {
-	addr string
-	db   *sql.DB
+type Config struct {
+	Addr         string
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
 }
 
-func NewAPIServer(addr string, db *sql.DB) *APIServer {
+type APIServer struct {
+	config Config
+	db     *sql.DB
+}
+
+func NewAPIServer(config Config, db *sql.DB) *APIServer {
 	return &APIServer{
-		addr: addr,
-		db:   db,
+		config: config,
+		db:     db,
 	}
 }
 
 func (s *APIServer) Start() error {
-	router := fiber.New()
+	router := fiber.New(fiber.Config{
+		ReadTimeout:  s.config.ReadTimeout,
+		WriteTimeout: s.config.WriteTimeout,
+	})
 	router.Use(logger.New(logger.Config{
 		Format: "[${ip}]:${port} ${status} - ${method} ${path}\n",
 	}))
@@ -31,9 +43,19 @@ func (s *APIServer) Start() error {
 
 	userStore := user.NewStore(s.db)
 	userHandler := user.NewHandler(userStore)
+
 	userHandler.RegisterRoutes(subrouter)
 
-	log.Println("Starting server on", s.addr)
+	log.Println("Starting server on", s.config.Addr)
 
-	return router.Listen(s.addr)
+	// Graceful shutdown
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		<-c
+		log.Println("Gracefully shutting down...")
+		_ = router.Shutdown()
+	}()
+
+	return router.Listen(s.config.Addr)
 }

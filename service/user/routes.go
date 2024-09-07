@@ -2,9 +2,9 @@ package user
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/zondaf12/planner-app-backend/config"
 	"github.com/zondaf12/planner-app-backend/service/auth"
@@ -28,37 +28,32 @@ func (h *Handler) RegisterRoutes(router fiber.Router) {
 }
 
 func (h *Handler) HandleRegister(c *fiber.Ctx) error {
-	// Get JSON Payload
 	var payload types.RegisterUserPayload
-	if err := utils.ParseJSON(c, &payload); err != nil {
+	if err := utils.ParseAndValidateJSON(c, &payload); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
-	if err := utils.Validate.Struct(payload); err != nil {
-		errors := err.(validator.ValidationErrors)
-		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("invalid payload %v", errors).Error())
-	}
-
 	// Check if the user already exists
-	_, err := h.store.GetUserByEmail(payload.Email)
-	if err == nil {
-		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("user with email %s already exists", payload.Email).Error())
+	if _, err := h.store.GetUserByEmail(payload.Email); err == nil {
+		return fiber.NewError(fiber.StatusConflict, "user with this email already exists")
 	}
 
 	hashedPassword, err := auth.HashPassword(payload.Password)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("Error hashing password: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "internal server error")
 	}
 
-	// If it doesnt exist, create a new user
-	err = h.store.CreateUser(types.User{
+	// Create a new user
+	user := types.User{
 		FirstName: payload.FirstName,
 		LastName:  payload.LastName,
 		Email:     payload.Email,
 		Password:  hashedPassword,
-	})
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	if err := h.store.CreateUser(user); err != nil {
+		log.Printf("Error creating user: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "internal server error")
 	}
 
 	return c.SendStatus(fiber.StatusCreated)
@@ -67,14 +62,8 @@ func (h *Handler) HandleRegister(c *fiber.Ctx) error {
 func (h *Handler) HandleLogin(c *fiber.Ctx) error {
 	// Parse payload
 	var payload types.LoginUserPayload
-	if err := utils.ParseJSON(c, &payload); err != nil {
-		return fiber.NewError(http.StatusBadRequest, err.Error())
-	}
-
-	// Validate payload
-	if err := utils.Validate.Struct(payload); err != nil {
-		errors := err.(validator.ValidationErrors)
-		return fiber.NewError(http.StatusBadRequest, fmt.Errorf("invalid payload %v", errors).Error())
+	if err := utils.ParseAndValidateJSON(c, &payload); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
 	u, err := h.store.GetUserByEmail(payload.Email)
@@ -86,10 +75,10 @@ func (h *Handler) HandleLogin(c *fiber.Ctx) error {
 		return fiber.NewError(http.StatusBadRequest, fmt.Errorf("not found, invalid email or password").Error())
 	}
 
-	secret := []byte(config.Envs.JWTSecret)
-	token, err := auth.CreateJWT(secret, u.ID)
+	token, err := auth.CreateJWT([]byte(config.Envs.JWTSecret), u.ID)
 	if err != nil {
-		return fiber.NewError(http.StatusInternalServerError, err.Error())
+		log.Printf("Error creating JWT: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "internal server error")
 	}
 
 	c.Set("Access-Control-Expose-Headers", "X-Token")
