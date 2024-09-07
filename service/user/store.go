@@ -19,31 +19,23 @@ func NewStore(db *sql.DB) *Store {
 }
 
 func (s *Store) GetUserByEmail(email string) (*types.User, error) {
-	rows, err := s.db.Query("SELECT * FROM users WHERE email = $1", email)
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
-	}
+	query := "SELECT * FROM users WHERE email = $1"
+	row := s.db.QueryRow(query, email)
 
 	u := new(types.User)
-	for rows.Next() {
-		u, err = scanRowIntoUser(rows)
-		if err != nil {
-			return nil, err
+	err := scanRowIntoUser(row, u)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("user not found")
 		}
-	}
-
-	if u.ID == uuid.Nil {
-		return nil, fmt.Errorf("user not found")
+		return nil, fmt.Errorf("error fetching user: %w", err)
 	}
 
 	return u, nil
 }
 
-func scanRowIntoUser(rows *sql.Rows) (*types.User, error) {
-	user := new(types.User)
-
-	err := rows.Scan(
+func scanRowIntoUser(row *sql.Row, user *types.User) error {
+	return row.Scan(
 		&user.ID,
 		&user.FirstName,
 		&user.LastName,
@@ -52,38 +44,29 @@ func scanRowIntoUser(rows *sql.Rows) (*types.User, error) {
 		&user.Bio,
 		&user.CreatedAt,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return user, nil
 }
 
 func (s *Store) GetUserByID(id uuid.UUID) (*types.User, error) {
-	rows, err := s.db.Query("SELECT * FROM users WHERE id = $1", id)
-	if err != nil {
-		return nil, err
-	}
+	query := "SELECT * FROM users WHERE id = $1"
+	row := s.db.QueryRow(query, id)
 
 	u := new(types.User)
-	for rows.Next() {
-		u, err = scanRowIntoUser(rows)
-		if err != nil {
-			return nil, err
+	err := scanRowIntoUser(row, u)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("user not found")
 		}
-	}
-
-	if u.ID == uuid.Nil {
-		return nil, fmt.Errorf("user not found")
+		return nil, fmt.Errorf("error fetching user: %w", err)
 	}
 
 	return u, nil
 }
 
 func (s *Store) CreateUser(u types.User) error {
-	_, err := s.db.Exec("INSERT INTO users (id, first_name, last_name, email, password) VALUES ($1, $2, $3, $4, $5)", uuid.New(), u.FirstName, u.LastName, u.Email, u.Password)
+	query := "INSERT INTO users (id, first_name, last_name, email, password) VALUES ($1, $2, $3, $4, $5)"
+	_, err := s.db.Exec(query, uuid.New(), u.FirstName, u.LastName, u.Email, u.Password)
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating user: %w", err)
 	}
 
 	return nil
