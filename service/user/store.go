@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/zondaf12/planner-app-backend/types"
+	"github.com/zondaf12/workout-app-backend/types"
 )
 
 type Store struct {

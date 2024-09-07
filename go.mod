@@ -1,4 +1,4 @@
-module github.com/zondaf12/planner-app-backend
+module github.com/zondaf12/workout-app-backend
 
 go 1.22.1
 

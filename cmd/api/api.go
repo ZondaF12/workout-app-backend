@@ -9,7 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/zondaf12/planner-app-backend/service/user"
+	"github.com/zondaf12/workout-app-backend/service/user"
 )
 
 type Config struct {
@@ -43,7 +43,6 @@ func (s *APIServer) Start() error {
 
 	userStore := user.NewStore(s.db)
 	userHandler := user.NewHandler(userStore)
-
 	userHandler.RegisterRoutes(subrouter)
 
 	log.Println("Starting server on", s.config.Addr)

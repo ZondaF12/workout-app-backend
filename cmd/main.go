@@ -6,9 +6,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/zondaf12/planner-app-backend/cmd/api"
-	"github.com/zondaf12/planner-app-backend/config"
-	"github.com/zondaf12/planner-app-backend/db"
+	"github.com/zondaf12/workout-app-backend/cmd/api"
+	"github.com/zondaf12/workout-app-backend/config"
+	"github.com/zondaf12/workout-app-backend/db"
 )
 
 func main() {

@@ -6,10 +6,10 @@ import (
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/zondaf12/planner-app-backend/config"
-	"github.com/zondaf12/planner-app-backend/service/auth"
-	"github.com/zondaf12/planner-app-backend/types"
-	"github.com/zondaf12/planner-app-backend/utils"
+	"github.com/zondaf12/workout-app-backend/config"
+	"github.com/zondaf12/workout-app-backend/service/auth"
+	"github.com/zondaf12/workout-app-backend/types"
+	"github.com/zondaf12/workout-app-backend/utils"
 )
 
 type Handler struct {

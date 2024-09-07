@@ -10,8 +10,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	"github.com/zondaf12/planner-app-backend/config"
-	"github.com/zondaf12/planner-app-backend/types"
+	"github.com/zondaf12/workout-app-backend/config"
+	"github.com/zondaf12/workout-app-backend/types"
 )
 
 type contextKey string
