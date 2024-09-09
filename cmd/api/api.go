@@ -9,6 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/zondaf12/workout-app-backend/service/foods"
 	"github.com/zondaf12/workout-app-backend/service/user"
 )
 
@@ -44,6 +45,10 @@ func (s *APIServer) Start() error {
 	userStore := user.NewStore(s.db)
 	userHandler := user.NewHandler(userStore)
 	userHandler.RegisterRoutes(subrouter)
+
+	foodStore := foods.NewStore(s.db)
+	foodHandler := foods.NewHandler(foodStore)
+	foodHandler.RegisterRoutes(subrouter)
 
 	log.Println("Starting server on", s.config.Addr)
 
