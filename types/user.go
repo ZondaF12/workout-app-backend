@@ -13,11 +13,6 @@ type UserStore interface {
 	CreateUser(User) error
 }
 
-type FoodStore interface {
-	GetAllFoods() (*[]Food, error)
-	CreateFood(Food) error
-}
-
 type User struct {
 	ID        uuid.UUID      `json:"id"`
 	FirstName string         `json:"first_name"`
@@ -38,19 +33,4 @@ type RegisterUserPayload struct {
 type LoginUserPayload struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required"`
-}
-
-type Food struct {
-	ID                 int        `json:"id"`
-	Name               string     `json:"name"`
-	Brand              *string    `json:"brand"`
-	DefaultServingSize float64    `json:"default_serving_size"`
-	DefaultServingUnit string     `json:"default_serving_unit"`
-	Calories           int        `json:"calories"`
-	Protein            *float64   `json:"protein"`
-	Carbs              *float64   `json:"carbs"`
-	Fat                *float64   `json:"fat"`
-	IsUserCreated      bool       `json:"is_user_created"`
-	CreatedBy          *uuid.UUID `json:"created_by"`
-	CreatedAt          time.Time  `json:"created_at"`
 }
