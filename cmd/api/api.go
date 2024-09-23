@@ -1,65 +1,60 @@
-package api
+package main
 
 import (
-	"database/sql"
 	"log"
-	"os"
-	"os/signal"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/zondaf12/workout-app-backend/service/foods"
-	"github.com/zondaf12/workout-app-backend/service/user"
+	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/swagger"
+	"github.com/zondaf12/workout-app-backend/internal/store"
+
+	_ "github.com/zondaf12/workout-app-backend/docs"
 )
 
-type Config struct {
-	Addr         string
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
-}
-
-type APIServer struct {
+type Application struct {
 	config Config
-	db     *sql.DB
+	store  store.Storage
 }
 
-func NewAPIServer(config Config, db *sql.DB) *APIServer {
-	return &APIServer{
-		config: config,
-		db:     db,
+type Config struct {
+	Addr string
+	db   dbConfig
+}
+
+type dbConfig struct {
+	addr         string
+	maxOpenConns int
+	maxIdleConns int
+	maxIdleTime  string
+}
+
+func (app *Application) mount() *fiber.App {
+	srv := fiber.Config{
+		WriteTimeout: time.Second * 30,
+		ReadTimeout:  time.Second * 10,
+		IdleTimeout:  time.Minute,
 	}
-}
 
-func (s *APIServer) Start() error {
-	router := fiber.New(fiber.Config{
-		ReadTimeout:  s.config.ReadTimeout,
-		WriteTimeout: s.config.WriteTimeout,
-	})
+	router := fiber.New(srv)
+
+	router.Use(recover.New())
 	router.Use(logger.New(logger.Config{
 		Format: "[${ip}]:${port} ${status} - ${method} ${path}\n",
 	}))
 
-	subrouter := router.Group("/api/v1")
+	router.Get("/swagger/*", swagger.HandlerDefault)
 
-	userStore := user.NewStore(s.db)
-	userHandler := user.NewHandler(userStore)
-	userHandler.RegisterRoutes(subrouter)
+	version := router.Group("/v1")
 
-	foodStore := foods.NewStore(s.db)
-	foodHandler := foods.NewHandler(foodStore)
-	foodHandler.RegisterRoutes(subrouter)
+	version.Get("/health", app.healthCheckHandler)
 
-	log.Println("Starting server on", s.config.Addr)
+	return router
+}
 
-	// Graceful shutdown
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		<-c
-		log.Println("Gracefully shutting down...")
-		_ = router.Shutdown()
-	}()
+func (app *Application) run(router *fiber.App) error {
+	log.Println("Starting server on", app.config.Addr)
 
-	return router.Listen(s.config.Addr)
+	return router.Listen(app.config.Addr)
 }
