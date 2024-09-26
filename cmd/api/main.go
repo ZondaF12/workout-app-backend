@@ -1,32 +1,31 @@
 package main
 
 import (
-	"log"
-
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq" // Import the PostgreSQL driver
 	"github.com/zondaf12/workout-app-backend/internal/db"
 	"github.com/zondaf12/workout-app-backend/internal/env"
 	"github.com/zondaf12/workout-app-backend/internal/store"
+	"go.uber.org/zap"
 
 	_ "github.com/zondaf12/workout-app-backend/docs"
 )
 
 const version = "0.0.1"
 
-//	@title						Workout App API
-//	@description				This is the API documentation for the Workout App API.
-//	@termsOfService				http://swagger.io/terms/
-//	@contact.name				API Support
-//	@contact.email				fiber@swagger.io
-//	@license.name				Apache 2.0
-//	@license.url				http://www.apache.org/licenses/LICENSE-2.0.html
-//	@BasePath					/v1
+// @title						Workout App API
+// @description				This is the API documentation for the Workout App API.
+// @termsOfService				http://swagger.io/terms/
+// @contact.name				API Support
+// @contact.email				fiber@swagger.io
+// @license.name				Apache 2.0
+// @license.url				http://www.apache.org/licenses/LICENSE-2.0.html
+// @BasePath					/v1
 //
-//	@securityDefinitions.apikey	ApiKeyAuth
-//	@in							header
-//	@name						Authorization
-//	@description
+// @securityDefinitions.apikey	ApiKeyAuth
+// @in							header
+// @name						Authorization
+// @description
 func main() {
 	godotenv.Load()
 
@@ -42,6 +41,10 @@ func main() {
 		env: env.GetString("ENV", "development"),
 	}
 
+	// Logger
+	logger := zap.Must(zap.NewProduction()).Sugar()
+	defer logger.Sync()
+
 	// Main Database
 	db, err := db.New(
 		cfg.db.addr,
@@ -50,19 +53,20 @@ func main() {
 		cfg.db.maxIdleTime,
 	)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	defer db.Close()
-	log.Println("database connection pool established")
+	logger.Info("database connection pool established")
 
 	store := store.NewStorage(db)
 
 	app := &Application{
 		config: cfg,
 		store:  store,
+		logger: logger,
 	}
 
 	router := app.mount()
-	log.Fatal(app.run(router))
+	logger.Fatal(app.run(router))
 }

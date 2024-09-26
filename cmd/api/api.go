@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -10,11 +9,13 @@ import (
 	"github.com/gofiber/swagger"
 	"github.com/zondaf12/workout-app-backend/docs" // This is required to load the swagger docs
 	"github.com/zondaf12/workout-app-backend/internal/store"
+	"go.uber.org/zap"
 )
 
 type Application struct {
 	config Config
 	store  store.Storage
+	logger *zap.SugaredLogger
 }
 
 type Config struct {
@@ -74,7 +75,7 @@ func (app *Application) mount() *fiber.App {
 }
 
 func (app *Application) run(router *fiber.App) error {
-	log.Println("Starting server on", app.config.addr)
+	app.logger.Infow("Starting server on", "addr", app.config.addr, "env", app.config.env)
 
 	return router.Listen(app.config.addr)
 }
