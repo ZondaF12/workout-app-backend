@@ -19,6 +19,8 @@ type Storage struct {
 	Users interface {
 		GetByID(context.Context, uuid.UUID) (*User, error)
 		Create(context.Context, *sql.Tx, *User) error
+		CreateAndInvite(ctx context.Context, user *User, token string, exp time.Duration) error
+		Activate(ctx context.Context, token string) error
 	}
 	Foods interface {
 		Create(context.Context, *Food) error
@@ -46,4 +48,21 @@ func NewStorage(db *sql.DB) Storage {
 		Meals:     &MealStore{db},
 		Followers: &FollowerStore{db},
 	}
+}
+
+func withTx(db *sql.DB, ctx context.Context, fn func(*sql.Tx) error) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	if err := fn(tx); err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return rbErr
+		}
+
+		return err
+	}
+
+	return tx.Commit()
 }

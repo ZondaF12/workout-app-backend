@@ -23,6 +23,11 @@ type Config struct {
 	db     dbConfig
 	env    string
 	apiUrl string
+	mail   mailConfig
+}
+
+type mailConfig struct {
+	exp time.Duration
 }
 
 type dbConfig struct {
@@ -56,7 +61,11 @@ func (app *Application) mount() *fiber.App {
 	v1.Get("/swagger/*", swagger.HandlerDefault)
 	v1.Get("/health", app.healthCheckHandler)
 
+	auth := v1.Group("/authentication")
+	auth.Post("/user", app.registerUserHandler)
+
 	users := v1.Group("/users")
+	users.Put("/activate/:token", app.activateUserHandler)
 	users.Get("/feed", app.getUserFeedHandler)
 
 	user := users.Group("/:id", app.userContextMiddleware())

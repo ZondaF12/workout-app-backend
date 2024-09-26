@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
@@ -99,6 +100,38 @@ func (app *Application) unfollowUserHandler(c *fiber.Ctx) error {
 
 	if err := app.store.Followers.Unfollow(c.Context(), unfollowedUser.ID, userId); err != nil {
 		return app.internalServerError(c, err)
+	}
+
+	if err := app.jsonResponse(c, http.StatusNoContent, nil); err != nil {
+		return app.internalServerError(c, err)
+	}
+
+	return nil
+}
+
+// ActivateUser godoc
+//
+//	@Summary		Activates/Register a user
+//	@Description	Activates/Register a user by invitation token
+//	@Tags			users
+//	@Produce		json
+//	@Param			token	path		string	true	"Invitation token"
+//	@Success		204		{string}	string	"User activated"
+//	@Failure		404		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/users/activate/{token} [put]
+func (app *Application) activateUserHandler(c *fiber.Ctx) error {
+	token := c.Params("token")
+	fmt.Println(token)
+
+	if err := app.store.Users.Activate(c.Context(), token); err != nil {
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			return app.notFoundResponse(c, err)
+		default:
+			return app.internalServerError(c, err)
+		}
 	}
 
 	if err := app.jsonResponse(c, http.StatusNoContent, nil); err != nil {
