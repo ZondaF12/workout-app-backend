@@ -200,12 +200,12 @@ func (app *Application) updateMealEntryHandler(c *fiber.Ctx) error {
 //	@Tags			meal entrys
 //	@Accept			json
 //	@Produce		json
-//	@Param			id	path		int	true	"Post ID"
+//	@Param			id	path		int	true	"Meal ID"
 //	@Success		204	{object} string
 //	@Failure		404	{object}	error
 //	@Failure		500	{object}	error
 //	@Security		ApiKeyAuth
-//	@Router			/posts/{id} [delete]
+//	@Router			/meal/{id} [delete]
 func (app *Application) deleteMealEntryHandler(c *fiber.Ctx) error {
 	mealID, err := uuid.Parse(c.Params("id"))
 	if err != nil {

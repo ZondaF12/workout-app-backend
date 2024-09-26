@@ -272,6 +272,34 @@ paths:
       tags:
       - meal entrys
   /meal/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a meal entry by ID
+      parameters:
+      - description: Meal ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Deletes a meal entry
+      tags:
+      - meal entrys
     patch:
       consumes:
       - application/json
@@ -310,35 +338,6 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Updates a meal entry
-      tags:
-      - meal entrys
-  /posts/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a meal entry by ID
-      parameters:
-      - description: Post ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-          schema:
-            type: string
-        "404":
-          description: Not Found
-          schema: {}
-        "500":
-          description: Internal Server Error
-          schema: {}
-      security:
-      - ApiKeyAuth: []
-      summary: Deletes a meal entry
       tags:
       - meal entrys
   /user/{id}:
