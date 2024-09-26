@@ -1,5 +1,157 @@
 basePath: /v1
-host: localhost:8080
+definitions:
+  main.CreateFoodPayload:
+    properties:
+      brand:
+        maxLength: 100
+        type: string
+      calories:
+        type: integer
+      carbs:
+        type: number
+      description:
+        maxLength: 1000
+        type: string
+      fat:
+        type: number
+      name:
+        maxLength: 100
+        type: string
+      protein:
+        type: number
+      serving_size:
+        type: number
+      serving_unit:
+        type: string
+      verified:
+        type: boolean
+    required:
+    - calories
+    - carbs
+    - description
+    - fat
+    - name
+    - protein
+    - serving_size
+    - serving_unit
+    type: object
+  main.CreateMealEntryPayload:
+    properties:
+      amount:
+        type: number
+      consumed_at:
+        type: string
+      food_id:
+        type: string
+      meal_name:
+        type: string
+      serving_unit:
+        type: string
+    required:
+    - amount
+    - consumed_at
+    - food_id
+    - meal_name
+    - serving_unit
+    type: object
+  main.UpdateMealEntryPayload:
+    properties:
+      amount:
+        type: number
+      consumed_at:
+        type: string
+      meal_name:
+        type: string
+      serving_unit:
+        type: string
+    required:
+    - amount
+    - consumed_at
+    - meal_name
+    - serving_unit
+    type: object
+  store.Food:
+    properties:
+      brand:
+        type: string
+      calories:
+        type: integer
+      carbs:
+        type: number
+      created_at:
+        type: string
+      description:
+        type: string
+      fat:
+        type: number
+      id:
+        type: string
+      name:
+        type: string
+      protein:
+        type: number
+      serving_size:
+        type: number
+      serving_unit:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+      verified:
+        type: boolean
+    type: object
+  store.Meal:
+    properties:
+      created_at:
+        type: string
+      date:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  store.MealEntry:
+    properties:
+      amount:
+        type: number
+      consumed_at:
+        type: string
+      created_at:
+        type: string
+      food_id:
+        type: string
+      id:
+        type: string
+      meal_id:
+        type: string
+      serving_unit:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  store.User:
+    properties:
+      bio:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: string
+      last_name:
+        type: string
+      username:
+        type: string
+    type: object
 info:
   contact:
     email: fiber@swagger.io
@@ -10,8 +162,275 @@ info:
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   termsOfService: http://swagger.io/terms/
   title: Workout App API
-  version: "1.0"
-paths: {}
+paths:
+  /food:
+    post:
+      consumes:
+      - application/json
+      description: Creates a food
+      parameters:
+      - description: Food payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.CreateFoodPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/store.Food'
+        "400":
+          description: Bad Request
+          schema: {}
+        "401":
+          description: Unauthorized
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Creates a food
+      tags:
+      - foods
+  /food/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Fetches a food by ID
+      parameters:
+      - description: Food ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/store.Food'
+        "404":
+          description: Not Found
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Fetches a food
+      tags:
+      - foods
+  /health:
+    get:
+      description: Healthcheck endpoint
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+      summary: Healthcheck
+      tags:
+      - tools
+  /meal:
+    post:
+      consumes:
+      - application/json
+      description: Creates a meal entry
+      parameters:
+      - description: Meal payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.CreateMealEntryPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/store.MealEntry'
+        "400":
+          description: Bad Request
+          schema: {}
+        "401":
+          description: Unauthorized
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Creates a meal entry
+      tags:
+      - meal entrys
+  /meal/{id}:
+    patch:
+      consumes:
+      - application/json
+      description: Updates a meal entry by ID
+      parameters:
+      - description: Meal ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Meal payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.UpdateMealEntryPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/store.Meal'
+        "400":
+          description: Bad Request
+          schema: {}
+        "401":
+          description: Unauthorized
+          schema: {}
+        "404":
+          description: Not Found
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Updates a meal entry
+      tags:
+      - meal entrys
+  /posts/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a meal entry by ID
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Deletes a meal entry
+      tags:
+      - meal entrys
+  /user/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Fetches a user profile by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/store.User'
+        "400":
+          description: Bad Request
+          schema: {}
+        "404":
+          description: Not Found
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Fetches a user profile
+      tags:
+      - users
+  /users/{userID}/follow:
+    put:
+      consumes:
+      - application/json
+      description: Follows a user by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: User followed
+          schema:
+            type: string
+        "400":
+          description: User payload missing
+          schema: {}
+        "404":
+          description: User not found
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Follows a user
+      tags:
+      - users
+  /users/{userID}/unfollow:
+    put:
+      consumes:
+      - application/json
+      description: Unfollow a user by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: User unfollowed
+          schema:
+            type: string
+        "400":
+          description: User payload missing
+          schema: {}
+        "404":
+          description: User not found
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Unfollow a user
+      tags:
+      - users
 securityDefinitions:
   ApiKeyAuth:
     in: header
