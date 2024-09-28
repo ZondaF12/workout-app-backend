@@ -21,6 +21,7 @@ type Storage struct {
 		Create(context.Context, *sql.Tx, *User) error
 		CreateAndInvite(ctx context.Context, user *User, token string, exp time.Duration) error
 		Activate(ctx context.Context, token string) error
+		Delete(ctx context.Context, userID uuid.UUID) error
 	}
 	Foods interface {
 		Create(context.Context, *Food) error

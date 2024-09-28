@@ -7,6 +7,7 @@ import (
 	_ "github.com/lib/pq" // Import the PostgreSQL driver
 	"github.com/zondaf12/workout-app-backend/internal/db"
 	"github.com/zondaf12/workout-app-backend/internal/env"
+	"github.com/zondaf12/workout-app-backend/internal/mailer"
 	"github.com/zondaf12/workout-app-backend/internal/store"
 	"go.uber.org/zap"
 
@@ -42,7 +43,11 @@ func main() {
 		},
 		env: env.GetString("ENV", "development"),
 		mail: mailConfig{
-			exp: time.Hour * 24 * 3,
+			exp:       time.Hour * 24 * 3,
+			fromEmail: env.GetString("FROM_EMAIL", ""),
+			sendGrid: sendGridConfig{
+				apiKey: env.GetString("SENDGRID_API_KEY", ""),
+			},
 		},
 	}
 
@@ -66,10 +71,13 @@ func main() {
 
 	store := store.NewStorage(db)
 
+	mailer := mailer.NewSendGridMailer(cfg.mail.sendGrid.apiKey, cfg.mail.fromEmail)
+
 	app := &Application{
 		config: cfg,
 		store:  store,
 		logger: logger,
+		mailer: mailer,
 	}
 
 	router := app.mount()

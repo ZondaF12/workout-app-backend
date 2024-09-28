@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/swagger"
 	"github.com/zondaf12/workout-app-backend/docs" // This is required to load the swagger docs
+	"github.com/zondaf12/workout-app-backend/internal/mailer"
 	"github.com/zondaf12/workout-app-backend/internal/store"
 	"go.uber.org/zap"
 )
@@ -16,6 +17,7 @@ type Application struct {
 	config Config
 	store  store.Storage
 	logger *zap.SugaredLogger
+	mailer mailer.Client
 }
 
 type Config struct {
@@ -27,7 +29,13 @@ type Config struct {
 }
 
 type mailConfig struct {
-	exp time.Duration
+	sendGrid  sendGridConfig
+	fromEmail string
+	exp       time.Duration
+}
+
+type sendGridConfig struct {
+	apiKey string
 }
 
 type dbConfig struct {

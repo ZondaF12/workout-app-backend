@@ -3,10 +3,12 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/zondaf12/workout-app-backend/internal/mailer"
 	"github.com/zondaf12/workout-app-backend/internal/store"
 )
 
@@ -80,7 +82,32 @@ func (app *Application) registerUserHandler(c *fiber.Ctx) error {
 		Token: plainToken,
 	}
 
+	isProdEnv := app.config.env == "production"
+
+	// TODO: Change this to the frontend app url
+	activationUrl := fmt.Sprintf("%s/v1/authentication/activate?token=%s", app.config.apiUrl, plainToken)
+	vars := struct {
+		Username      string
+		ActivationURL string
+	}{
+		Username:      user.Username,
+		ActivationURL: activationUrl,
+	}
+
 	// Send the email
+	status, err := app.mailer.Send(mailer.UserWelcomeTemplate, user.Username, user.Email, vars, !isProdEnv)
+	if err != nil {
+		app.logger.Errorw("error sending welcome email", "error", err)
+
+		// rollback user creation if email fails
+		if err := app.store.Users.Delete(c.Context(), user.ID); err != nil {
+			app.logger.Errorw("error deleting user", "error", err)
+		}
+
+		return app.internalServerError(c, err)
+	}
+
+	app.logger.Infow("Email sent", "status code", status)
 
 	if err := app.jsonResponse(c, http.StatusCreated, userWithToken); err != nil {
 		return app.internalServerError(c, err)
