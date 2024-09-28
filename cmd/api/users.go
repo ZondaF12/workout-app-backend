@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
@@ -10,9 +9,9 @@ import (
 	"github.com/zondaf12/workout-app-backend/internal/store"
 )
 
-type userKey string
+type selfKey string
 
-const userCtxKey userKey = "user"
+const selfCtxKey selfKey = "self"
 
 // GetUser godoc
 //
@@ -21,7 +20,7 @@ const userCtxKey userKey = "user"
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
-//	@Param			id	path		int	true	"User ID"
+//	@Param			id	path		string	true	"User ID"
 //	@Success		200	{object}	store.User
 //	@Failure		400	{object}	error
 //	@Failure		404	{object}	error
@@ -29,9 +28,23 @@ const userCtxKey userKey = "user"
 //
 //	@Security		ApiKeyAuth
 //
-//	@Router			/user/{id} [get]
+//	@Router			/users/{id} [get]
 func (app *Application) getUserHandler(c *fiber.Ctx) error {
-	user := getUserFromContext(c)
+	id := c.Params("id")
+	uuid, err := uuid.Parse(id)
+	if err != nil {
+		return app.internalServerError(c, err)
+	}
+
+	user, err := app.store.Users.GetByID(c.Context(), uuid)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			return app.notFoundResponse(c, err)
+		default:
+			return app.internalServerError(c, err)
+		}
+	}
 
 	if err := app.jsonResponse(c, http.StatusOK, user); err != nil {
 		return app.internalServerError(c, err)
@@ -47,7 +60,7 @@ func (app *Application) getUserHandler(c *fiber.Ctx) error {
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
-//	@Param			userID	path		int		true	"User ID"
+//	@Param			userID	path		string	true	"User ID"
 //	@Success		204		{string}	string	"User followed"
 //	@Failure		400		{object}	error	"User payload missing"
 //	@Failure		404		{object}	error	"User not found"
@@ -56,12 +69,15 @@ func (app *Application) getUserHandler(c *fiber.Ctx) error {
 //
 //	@Router			/users/{userID}/follow [put]
 func (app *Application) followUserHandler(c *fiber.Ctx) error {
-	followedUser := getUserFromContext(c)
+	id := c.Params("id")
+	followedUserID, err := uuid.Parse(id)
+	if err != nil {
+		return app.internalServerError(c, err)
+	}
 
-	// TODO: Get the user ID from auth
-	userId := uuid.MustParse("9ecafdec-7cc0-451a-847d-2aa02cf2adc5")
+	self := getSelfFromContext(c)
 
-	if err := app.store.Followers.Follow(c.Context(), followedUser.ID, userId); err != nil {
+	if err := app.store.Followers.Follow(c.Context(), followedUserID, self.ID); err != nil {
 		switch err {
 		case store.ErrConflict:
 			return app.conflictResponse(c, err)
@@ -84,7 +100,7 @@ func (app *Application) followUserHandler(c *fiber.Ctx) error {
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
-//	@Param			userID	path		int		true	"User ID"
+//	@Param			userID	path		string	true	"User ID"
 //	@Success		204		{string}	string	"User unfollowed"
 //	@Failure		400		{object}	error	"User payload missing"
 //	@Failure		404		{object}	error	"User not found"
@@ -93,12 +109,15 @@ func (app *Application) followUserHandler(c *fiber.Ctx) error {
 //
 //	@Router			/users/{userID}/unfollow [put]
 func (app *Application) unfollowUserHandler(c *fiber.Ctx) error {
-	unfollowedUser := getUserFromContext(c)
+	id := c.Params("id")
+	followedUserID, err := uuid.Parse(id)
+	if err != nil {
+		return app.internalServerError(c, err)
+	}
 
-	// TODO: Get the user ID from auth
-	userId := uuid.MustParse("9ecafdec-7cc0-451a-847d-2aa02cf2adc5")
+	self := getSelfFromContext(c)
 
-	if err := app.store.Followers.Unfollow(c.Context(), unfollowedUser.ID, userId); err != nil {
+	if err := app.store.Followers.Unfollow(c.Context(), followedUserID, self.ID); err != nil {
 		return app.internalServerError(c, err)
 	}
 
@@ -123,7 +142,6 @@ func (app *Application) unfollowUserHandler(c *fiber.Ctx) error {
 //	@Router			/users/activate/{token} [put]
 func (app *Application) activateUserHandler(c *fiber.Ctx) error {
 	token := c.Params("token")
-	fmt.Println(token)
 
 	if err := app.store.Users.Activate(c.Context(), token); err != nil {
 		switch {
@@ -141,31 +159,8 @@ func (app *Application) activateUserHandler(c *fiber.Ctx) error {
 	return nil
 }
 
-func (app *Application) userContextMiddleware() fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		id := c.Params("id")
-		uuid, err := uuid.Parse(id)
-		if err != nil {
-			return app.internalServerError(c, err)
-		}
+func getSelfFromContext(c *fiber.Ctx) *store.User {
+	self, _ := c.Locals(selfCtxKey).(*store.User)
 
-		user, err := app.store.Users.GetByID(c.Context(), uuid)
-		if err != nil {
-			switch {
-			case errors.Is(err, store.ErrNotFound):
-				return app.notFoundResponse(c, err)
-			default:
-				return app.internalServerError(c, err)
-			}
-		}
-
-		c.Locals(userCtxKey, user)
-		return c.Next()
-	}
-}
-
-func getUserFromContext(c *fiber.Ctx) *store.User {
-	user, _ := c.Locals(userCtxKey).(*store.User)
-
-	return user
+	return self
 }

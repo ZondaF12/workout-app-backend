@@ -8,16 +8,18 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/swagger"
 	"github.com/zondaf12/workout-app-backend/docs" // This is required to load the swagger docs
+	"github.com/zondaf12/workout-app-backend/internal/auth"
 	"github.com/zondaf12/workout-app-backend/internal/mailer"
 	"github.com/zondaf12/workout-app-backend/internal/store"
 	"go.uber.org/zap"
 )
 
 type Application struct {
-	config Config
-	store  store.Storage
-	logger *zap.SugaredLogger
-	mailer mailer.Client
+	config        Config
+	store         store.Storage
+	logger        *zap.SugaredLogger
+	mailer        mailer.Client
+	authenticator auth.Authenticator
 }
 
 type Config struct {
@@ -31,11 +33,18 @@ type Config struct {
 
 type authConfig struct {
 	basic basicAuthConfig
+	token tokenConfig
 }
 
 type basicAuthConfig struct {
 	username string
 	password string
+}
+
+type tokenConfig struct {
+	secret string
+	exp    time.Duration
+	iss    string
 }
 
 type mailConfig struct {
@@ -81,12 +90,13 @@ func (app *Application) mount() *fiber.App {
 
 	auth := v1.Group("/authentication")
 	auth.Post("/user", app.registerUserHandler)
+	auth.Post("/token", app.createTokenHandler)
 
 	users := v1.Group("/users")
 	users.Put("/activate/:token", app.activateUserHandler)
-	users.Get("/feed", app.getUserFeedHandler)
+	users.Get("/feed", app.AuthTokenMiddleware(), app.getUserFeedHandler)
 
-	user := users.Group("/:id", app.userContextMiddleware())
+	user := users.Group("/:id", app.AuthTokenMiddleware())
 	user.Get("/", app.getUserHandler)
 	user.Put("/follow", app.followUserHandler)
 	user.Put("/unfollow", app.unfollowUserHandler)
@@ -94,9 +104,10 @@ func (app *Application) mount() *fiber.App {
 	v1.Post("/food", app.createFoodHandler)
 	v1.Get("/food/:id", app.getFoodHandler)
 
-	v1.Post("/meal", app.createMealEntryHandler)
-	v1.Patch("/meal/:id", app.updateMealEntryHandler)
-	v1.Delete("/meal/:id", app.deleteMealEntryHandler)
+	meals := v1.Group("/meals", app.AuthTokenMiddleware())
+	meals.Post("/", app.createMealEntryHandler)
+	meals.Patch("/:id", app.updateMealEntryHandler)
+	meals.Delete("/:id", app.deleteMealEntryHandler)
 
 	return router
 }

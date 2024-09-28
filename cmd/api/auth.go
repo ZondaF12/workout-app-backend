@@ -5,8 +5,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/zondaf12/workout-app-backend/internal/mailer"
 	"github.com/zondaf12/workout-app-backend/internal/store"
@@ -114,4 +116,81 @@ func (app *Application) registerUserHandler(c *fiber.Ctx) error {
 	}
 
 	return nil
+}
+
+type CreateUserTokenPayload struct {
+	Email    string `json:"email" validate:"required,email,max=255"`
+	Password string `json:"password" validate:"required,min=8"`
+}
+
+// createTokenHandler godoc
+//
+//	@Summary		Creates a token
+//	@Description	Creates a token for a user
+//	@Tags			authentication
+//	@Accept			json
+//	@Produce		json
+//	@Param			payload	body		CreateUserTokenPayload	true	"User credentials"
+//	@Success		200		{string}	string					"Token"
+//	@Failure		400		{object}	error
+//	@Failure		401		{object}	error
+//	@Failure		500		{object}	error
+//	@Router			/authentication/token [post]
+func (app *Application) createTokenHandler(c *fiber.Ctx) error {
+	// parse the payload credentials
+	var payload CreateUserTokenPayload
+	if err := readJSON(c, &payload); err != nil {
+		return app.badRequestResponse(c, err)
+	}
+
+	if err := Validate.Struct(payload); err != nil {
+		return app.badRequestResponse(c, err)
+	}
+
+	// fetch the user from the payload (check if the user exists)
+	user, err := app.store.Users.GetByEmail(c.Context(), payload.Email)
+	if err != nil {
+		switch err {
+		case store.ErrNotFound:
+			return app.unauthorizedErrorResponse(c, err)
+		default:
+			return app.internalServerError(c, err)
+		}
+	}
+
+	// generate a token for the user & add claims
+	claims := jwt.MapClaims{
+		"sub": user.ID,
+		"exp": time.Now().Add(app.config.auth.token.exp).Unix(),
+		"iat": time.Now().Unix(),
+		"nbf": time.Now().Unix(),
+		"iss": app.config.auth.token.iss,
+		"aud": app.config.auth.token.iss,
+	}
+
+	token, err := app.authenticator.GenerateToken(claims)
+	if err != nil {
+		return app.internalServerError(c, err)
+	}
+
+	// set the token in the cookie
+	setTokenCookie(c, token)
+
+	if err := app.jsonResponse(c, http.StatusCreated, nil); err != nil {
+		return app.internalServerError(c, err)
+	}
+
+	return nil
+}
+
+func setTokenCookie(c *fiber.Ctx, token string) {
+	cookie := new(fiber.Cookie)
+	cookie.Name = "jwt"
+	cookie.Value = token
+	cookie.Expires = time.Now().Add(time.Hour * 24 * 3) // Set expiration time
+	cookie.HTTPOnly = true                              // Makes the cookie inaccessible to client-side scripts
+	cookie.Secure = true                                // Only send over HTTPS
+	cookie.SameSite = "Lax"                             // Provides some CSRF protection
+
+	c.Cookie(cookie)
 }

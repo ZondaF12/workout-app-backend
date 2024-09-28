@@ -48,8 +48,10 @@ func (app *Application) createMealEntryHandler(c *fiber.Ctx) error {
 		return app.badRequestResponse(c, err)
 	}
 
+	self := getSelfFromContext(c)
+
 	checkMeal := store.Meal{
-		UserID: uuid.MustParse("9ecafdec-7cc0-451a-847d-2aa02cf2adc5"),
+		UserID: self.ID,
 		Name:   payload.MealName,
 		Date:   payload.ConsumedAt,
 	}
@@ -154,8 +156,10 @@ func (app *Application) updateMealEntryHandler(c *fiber.Ctx) error {
 		ConsumedAt:  payload.ConsumedAt,
 	}
 	if currentMeal.Name != payload.MealName {
+		self := getSelfFromContext(c)
+
 		checkMeal := store.Meal{
-			UserID: uuid.MustParse("9ecafdec-7cc0-451a-847d-2aa02cf2adc5"),
+			UserID: self.ID,
 			Name:   payload.MealName,
 			Date:   payload.ConsumedAt,
 		}

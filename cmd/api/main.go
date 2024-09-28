@@ -5,6 +5,7 @@ import (
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq" // Import the PostgreSQL driver
+	"github.com/zondaf12/workout-app-backend/internal/auth"
 	"github.com/zondaf12/workout-app-backend/internal/db"
 	"github.com/zondaf12/workout-app-backend/internal/env"
 	"github.com/zondaf12/workout-app-backend/internal/mailer"
@@ -54,6 +55,11 @@ func main() {
 				username: env.GetString("AUTH_BASIC_USERNAME", "admin"),
 				password: env.GetString("AUTH_BASIC_PASSWORD", "password"),
 			},
+			token: tokenConfig{
+				secret: env.GetString("AUTH_TOKEN_SECRET", "basic_secret123"),
+				exp:    time.Hour * 24 * 3, // 3 days
+				iss:    env.GetString("AUTH_TOKEN_ISSUER", "workoutapp"),
+			},
 		},
 	}
 
@@ -79,11 +85,18 @@ func main() {
 
 	mailer := mailer.NewSendGridMailer(cfg.mail.sendGrid.apiKey, cfg.mail.fromEmail)
 
+	jwtAuthenticator := auth.NewJWTAuthenticator(
+		cfg.auth.token.secret,
+		cfg.auth.token.iss,
+		cfg.auth.token.iss,
+	)
+
 	app := &Application{
-		config: cfg,
-		store:  store,
-		logger: logger,
-		mailer: mailer,
+		config:        cfg,
+		store:         store,
+		logger:        logger,
+		mailer:        mailer,
+		authenticator: jwtAuthenticator,
 	}
 
 	router := app.mount()
