@@ -29,3 +29,17 @@ func (app *Application) notFoundResponse(c *fiber.Ctx, err error) error {
 
 	return writeJSONError(c, http.StatusNotFound, "not found")
 }
+
+func (app *Application) unauthorizedErrorResponse(c *fiber.Ctx, err error) error {
+	app.logger.Warnf("unauthorized error", "method", c.Method(), "path", c.Path(), "error", err.Error())
+
+	return writeJSONError(c, http.StatusUnauthorized, "unauthorized")
+}
+
+func (app *Application) unauthorizedBasicErrorResponse(c *fiber.Ctx, err error) error {
+	app.logger.Warnf("unauthorized basic error", "method", c.Method(), "path", c.Path(), "error", err.Error())
+
+	c.Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
+
+	return writeJSONError(c, http.StatusUnauthorized, "unauthorized")
+}

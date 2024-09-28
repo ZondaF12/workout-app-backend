@@ -26,6 +26,16 @@ type Config struct {
 	env    string
 	apiUrl string
 	mail   mailConfig
+	auth   authConfig
+}
+
+type authConfig struct {
+	basic basicAuthConfig
+}
+
+type basicAuthConfig struct {
+	username string
+	password string
 }
 
 type mailConfig struct {
