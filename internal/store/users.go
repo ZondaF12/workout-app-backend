@@ -48,6 +48,12 @@ func (p *password) Set(text string) error {
 	return nil
 }
 
+// Verify compares the provided password with the stored hash
+func (p *password) Verify(text string) bool {
+	err := bcrypt.CompareHashAndPassword(p.hash, []byte(text))
+	return err == nil
+}
+
 type UserStore struct {
 	db *sql.DB
 }

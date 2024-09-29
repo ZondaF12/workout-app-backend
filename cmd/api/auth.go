@@ -130,37 +130,17 @@ type CreateUserTokenPayload struct {
 //	@Tags			authentication
 //	@Accept			json
 //	@Produce		json
-//	@Param			payload	body		CreateUserTokenPayload	true	"User credentials"
-//	@Success		200		{string}	string					"Token"
-//	@Failure		400		{object}	error
-//	@Failure		401		{object}	error
-//	@Failure		500		{object}	error
+//	@Success		200	{string}	string	"Token"
+//	@Failure		400	{object}	error
+//	@Failure		401	{object}	error
+//	@Failure		500	{object}	error
 //	@Router			/authentication/token [post]
 func (app *Application) createTokenHandler(c *fiber.Ctx) error {
-	// parse the payload credentials
-	var payload CreateUserTokenPayload
-	if err := readJSON(c, &payload); err != nil {
-		return app.badRequestResponse(c, err)
-	}
-
-	if err := Validate.Struct(payload); err != nil {
-		return app.badRequestResponse(c, err)
-	}
-
-	// fetch the user from the payload (check if the user exists)
-	user, err := app.store.Users.GetByEmail(c.Context(), payload.Email)
-	if err != nil {
-		switch err {
-		case store.ErrNotFound:
-			return app.unauthorizedErrorResponse(c, err)
-		default:
-			return app.internalServerError(c, err)
-		}
-	}
+	self := getSelfFromContext(c)
 
 	// generate a token for the user & add claims
 	claims := jwt.MapClaims{
-		"sub": user.ID,
+		"sub": self.ID,
 		"exp": time.Now().Add(app.config.auth.token.exp).Unix(),
 		"iat": time.Now().Unix(),
 		"nbf": time.Now().Unix(),
@@ -176,7 +156,7 @@ func (app *Application) createTokenHandler(c *fiber.Ctx) error {
 	// set the token in the cookie
 	setTokenCookie(c, token)
 
-	if err := app.jsonResponse(c, http.StatusCreated, nil); err != nil {
+	if err := app.jsonResponse(c, http.StatusCreated, self); err != nil {
 		return app.internalServerError(c, err)
 	}
 

@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/zondaf12/workout-app-backend/internal/store"
 )
 
 func (app *Application) AuthTokenMiddleware() fiber.Handler {
@@ -72,14 +73,25 @@ func (app *Application) BasicAuthMiddleware() fiber.Handler {
 			return app.unauthorizedBasicErrorResponse(c, err)
 		}
 
-		// check if the username and password are correct
-		username := app.config.auth.basic.username
-		password := app.config.auth.basic.password
-
 		creds := strings.SplitN(string(decoded), ":", 2)
-		if len(creds) != 2 || creds[0] != username || creds[1] != password {
+
+		// fetch the user from the payload (check if the user exists)
+		user, err := app.store.Users.GetByEmail(c.Context(), creds[0])
+		if err != nil {
+			switch err {
+			case store.ErrNotFound:
+				return app.unauthorizedErrorResponse(c, err)
+			default:
+				return app.internalServerError(c, err)
+			}
+		}
+
+		if !user.Password.Verify(creds[1]) {
 			return app.unauthorizedBasicErrorResponse(c, fmt.Errorf("invalid credentials"))
 		}
+
+		// set the user in the context
+		c.Locals(selfCtxKey, user)
 
 		return c.Next()
 	}

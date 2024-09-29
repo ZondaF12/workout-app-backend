@@ -90,7 +90,7 @@ func (app *Application) mount() *fiber.App {
 
 	auth := v1.Group("/authentication")
 	auth.Post("/user", app.registerUserHandler)
-	auth.Post("/token", app.createTokenHandler)
+	auth.Post("/token", app.BasicAuthMiddleware(), app.createTokenHandler)
 
 	users := v1.Group("/users")
 	users.Put("/activate/:token", app.activateUserHandler)
