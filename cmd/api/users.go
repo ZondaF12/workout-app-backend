@@ -159,6 +159,31 @@ func (app *Application) activateUserHandler(c *fiber.Ctx) error {
 	return nil
 }
 
+// GetSelf godoc
+//
+//	@Summary		Fetches the currently logged in user profile
+//	@Description	Fetches the currently logged in user profile
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	store.User
+//	@Failure		400	{object}	error
+//	@Failure		404	{object}	error
+//	@Failure		500	{object}	error
+//
+//	@Security		ApiKeyAuth
+//
+//	@Router			/users/self [get]
+func (app *Application) getSelfHandler(c *fiber.Ctx) error {
+	self := getSelfFromContext(c)
+
+	if err := app.jsonResponse(c, http.StatusOK, self); err != nil {
+		return app.internalServerError(c, err)
+	}
+
+	return nil
+}
+
 func getSelfFromContext(c *fiber.Ctx) *store.User {
 	self, _ := c.Locals(selfCtxKey).(*store.User)
 

@@ -89,10 +89,11 @@ func (app *Application) mount() *fiber.App {
 	v1.Get("/health", app.healthCheckHandler)
 
 	auth := v1.Group("/authentication")
-	auth.Post("/user", app.registerUserHandler)
-	auth.Post("/token", app.BasicAuthMiddleware(), app.createTokenHandler)
+	auth.Post("/register", app.registerUserHandler)
+	auth.Post("/login", app.BasicAuthMiddleware(), app.createTokenHandler)
 
 	users := v1.Group("/users")
+	users.Get("/self", app.AuthTokenMiddleware(), app.getSelfHandler)
 	users.Put("/activate/:token", app.activateUserHandler)
 	users.Get("/feed", app.AuthTokenMiddleware(), app.getUserFeedHandler)
 

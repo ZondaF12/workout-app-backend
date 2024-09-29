@@ -38,7 +38,7 @@ type UserWithToken struct {
 //	@Success		201		{object}	UserWithToken		"User registered"
 //	@Failure		400		{object}	error
 //	@Failure		500		{object}	error
-//	@Router			/authentication/user [post]
+//	@Router			/authentication/register [post]
 func (app *Application) registerUserHandler(c *fiber.Ctx) error {
 	var payload RegisterUserPayload
 	if err := readJSON(c, &payload); err != nil {
@@ -134,7 +134,7 @@ type CreateUserTokenPayload struct {
 //	@Failure		400	{object}	error
 //	@Failure		401	{object}	error
 //	@Failure		500	{object}	error
-//	@Router			/authentication/token [post]
+//	@Router			/authentication/login [post]
 func (app *Application) createTokenHandler(c *fiber.Ctx) error {
 	self := getSelfFromContext(c)
 
