@@ -130,7 +130,7 @@ type CreateUserTokenPayload struct {
 //	@Tags			authentication
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{string}	string	"Token"
+//	@Success		200	{object}	store.User	"User logged in"
 //	@Failure		400	{object}	error
 //	@Failure		401	{object}	error
 //	@Failure		500	{object}	error

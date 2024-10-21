@@ -23,7 +23,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/authentication/token": {
+        "/authentication/login": {
             "post": {
                 "description": "Creates a token for a user",
                 "consumes": [
@@ -36,22 +36,11 @@ const docTemplate = `{
                     "authentication"
                 ],
                 "summary": "Creates a token",
-                "parameters": [
-                    {
-                        "description": "User credentials",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/main.CreateUserTokenPayload"
-                        }
-                    }
-                ],
                 "responses": {
                     "200": {
-                        "description": "Token",
+                        "description": "User logged in",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/store.User"
                         }
                     },
                     "400": {
@@ -69,7 +58,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/authentication/user": {
+        "/authentication/register": {
             "post": {
                 "description": "Registers a user",
                 "consumes": [
@@ -112,6 +101,43 @@ const docTemplate = `{
             }
         },
         "/food": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Fetches all food in the database",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "foods"
+                ],
+                "summary": "Fetches all food",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/store.Food"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {}
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -278,7 +304,50 @@ const docTemplate = `{
                 }
             }
         },
-        "/meal/{id}": {
+        "/meals/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get a meal entry by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "meal entrys"
+                ],
+                "summary": "Gets a meal entry",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Meal ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "$ref": "#/definitions/store.MealEntry"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {}
+                    }
+                }
+            },
             "delete": {
                 "security": [
                     {
@@ -298,7 +367,7 @@ const docTemplate = `{
                 "summary": "Deletes a meal entry",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Meal ID",
                         "name": "id",
                         "in": "path",
@@ -413,6 +482,46 @@ const docTemplate = `{
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/users/self": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Fetches the currently logged in user profile",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Fetches the currently logged in user profile",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/store.User"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {}
                     },
                     "404": {
                         "description": "Not Found",
@@ -571,8 +680,8 @@ const docTemplate = `{
             "required": [
                 "calories",
                 "carbs",
-                "description",
                 "fat",
+                "fiber",
                 "name",
                 "protein",
                 "serving_size",
@@ -589,11 +698,10 @@ const docTemplate = `{
                 "carbs": {
                     "type": "number"
                 },
-                "description": {
-                    "type": "string",
-                    "maxLength": 1000
-                },
                 "fat": {
+                    "type": "number"
+                },
+                "fiber": {
                     "type": "number"
                 },
                 "name": {
@@ -638,23 +746,6 @@ const docTemplate = `{
                 },
                 "serving_unit": {
                     "type": "string"
-                }
-            }
-        },
-        "main.CreateUserTokenPayload": {
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string",
-                    "maxLength": 255
-                },
-                "password": {
-                    "type": "string",
-                    "minLength": 8
                 }
             }
         },
@@ -760,10 +851,10 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
-                "description": {
-                    "type": "string"
-                },
                 "fat": {
+                    "type": "number"
+                },
+                "fiber": {
                     "type": "number"
                 },
                 "id": {
@@ -827,11 +918,17 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "food": {
+                    "$ref": "#/definitions/store.Food"
+                },
                 "food_id": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
+                },
+                "meal": {
+                    "$ref": "#/definitions/store.Meal"
                 },
                 "meal_id": {
                     "type": "string"

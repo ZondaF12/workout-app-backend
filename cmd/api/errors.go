@@ -43,3 +43,9 @@ func (app *Application) unauthorizedBasicErrorResponse(c *fiber.Ctx, err error) 
 
 	return writeJSONError(c, http.StatusUnauthorized, "unauthorized")
 }
+
+func (app *Application) forbiddenResponse(c *fiber.Ctx) error {
+	app.logger.Warnf("forbidden", "method", c.Method(), "path", c.Path(), "error")
+
+	return writeJSONError(c, http.StatusForbidden, "forbidden")
+}

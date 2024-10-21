@@ -11,24 +11,34 @@ import (
 	"github.com/zondaf12/workout-app-backend/internal/auth"
 	"github.com/zondaf12/workout-app-backend/internal/mailer"
 	"github.com/zondaf12/workout-app-backend/internal/store"
+	"github.com/zondaf12/workout-app-backend/internal/store/cache"
 	"go.uber.org/zap"
 )
 
 type Application struct {
 	config        Config
 	store         store.Storage
+	cacheStorage  cache.Storage
 	logger        *zap.SugaredLogger
 	mailer        mailer.Client
 	authenticator auth.Authenticator
 }
 
 type Config struct {
-	addr   string
-	db     dbConfig
-	env    string
-	apiUrl string
-	mail   mailConfig
-	auth   authConfig
+	addr     string
+	db       dbConfig
+	env      string
+	apiUrl   string
+	mail     mailConfig
+	auth     authConfig
+	redisCfg redisConfig
+}
+
+type redisConfig struct {
+	addr    string
+	pw      string
+	db      int
+	enabled bool
 }
 
 type authConfig struct {
@@ -93,17 +103,18 @@ func (app *Application) mount() *fiber.App {
 	auth.Post("/login", app.BasicAuthMiddleware(), app.createTokenHandler)
 
 	users := v1.Group("/users")
-	users.Get("/self", app.AuthTokenMiddleware(), app.getSelfHandler)
 	users.Put("/activate/:token", app.activateUserHandler)
+	users.Get("/self", app.AuthTokenMiddleware(), app.getSelfHandler)
 	users.Get("/feed", app.AuthTokenMiddleware(), app.getUserFeedHandler)
 
 	user := users.Group("/:id", app.AuthTokenMiddleware())
-	user.Get("/", app.getUserHandler)
-	user.Put("/follow", app.followUserHandler)
-	user.Put("/unfollow", app.unfollowUserHandler)
+	user.Get("/", app.AuthTokenMiddleware(), app.getUserHandler)
+	user.Put("/follow", app.AuthTokenMiddleware(), app.followUserHandler)
+	user.Put("/unfollow", app.AuthTokenMiddleware(), app.unfollowUserHandler)
 
-	v1.Post("/food", app.createFoodHandler)
-	v1.Get("/food/:id", app.getFoodHandler)
+	v1.Post("/food", app.AuthTokenMiddleware(), app.createFoodHandler)
+	v1.Get("/food", app.AuthTokenMiddleware(), app.getAllFoodHandler)
+	v1.Get("/food/:id", app.AuthTokenMiddleware(), app.getFoodHandler)
 
 	meals := v1.Group("/meals", app.AuthTokenMiddleware())
 	meals.Post("/", app.createMealEntryHandler)

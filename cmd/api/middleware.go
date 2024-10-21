@@ -41,7 +41,7 @@ func (app *Application) AuthTokenMiddleware() fiber.Handler {
 		}
 
 		// get the user from the store
-		user, err := app.store.Users.GetByID(c.Context(), userID)
+		user, err := app.getUser(c, userID)
 		if err != nil {
 			return app.unauthorizedErrorResponse(c, err)
 		}
@@ -51,6 +51,30 @@ func (app *Application) AuthTokenMiddleware() fiber.Handler {
 
 		return c.Next()
 	}
+}
+
+func (app *Application) getUser(c *fiber.Ctx, userID uuid.UUID) (*store.User, error) {
+	if !app.config.redisCfg.enabled {
+		return app.store.Users.GetByID(c.Context(), userID)
+	}
+
+	user, err := app.cacheStorage.Users.Get(c.Context(), userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if user == nil {
+		user, err = app.store.Users.GetByID(c.Context(), userID)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := app.cacheStorage.Users.Set(c.Context(), user); err != nil {
+			return nil, err
+		}
+	}
+
+	return user, nil
 }
 
 func (app *Application) BasicAuthMiddleware() fiber.Handler {
@@ -95,5 +119,17 @@ func (app *Application) BasicAuthMiddleware() fiber.Handler {
 
 		return c.Next()
 	}
+}
 
+func (app *Application) checkMealOwnership() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		user := getSelfFromContext(c)
+		meal := getMealEntryFromContext(c)
+
+		if meal.Meal.UserID == user.ID {
+			return c.Next()
+		}
+
+		return app.forbiddenResponse(c)
+	}
 }

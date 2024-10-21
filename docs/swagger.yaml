@@ -9,10 +9,9 @@ definitions:
         type: integer
       carbs:
         type: number
-      description:
-        maxLength: 1000
-        type: string
       fat:
+        type: number
+      fiber:
         type: number
       name:
         maxLength: 100
@@ -28,8 +27,8 @@ definitions:
     required:
     - calories
     - carbs
-    - description
     - fat
+    - fiber
     - name
     - protein
     - serving_size
@@ -53,18 +52,6 @@ definitions:
     - food_id
     - meal_name
     - serving_unit
-    type: object
-  main.CreateUserTokenPayload:
-    properties:
-      email:
-        maxLength: 255
-        type: string
-      password:
-        minLength: 8
-        type: string
-    required:
-    - email
-    - password
     type: object
   main.RegisterUserPayload:
     properties:
@@ -137,9 +124,9 @@ definitions:
         type: number
       created_at:
         type: string
-      description:
-        type: string
       fat:
+        type: number
+      fiber:
         type: number
       id:
         type: string
@@ -181,10 +168,14 @@ definitions:
         type: string
       created_at:
         type: string
+      food:
+        $ref: '#/definitions/store.Food'
       food_id:
         type: string
       id:
         type: string
+      meal:
+        $ref: '#/definitions/store.Meal'
       meal_id:
         type: string
       serving_unit:
@@ -222,25 +213,18 @@ info:
   termsOfService: http://swagger.io/terms/
   title: Workout App API
 paths:
-  /authentication/token:
+  /authentication/login:
     post:
       consumes:
       - application/json
       description: Creates a token for a user
-      parameters:
-      - description: User credentials
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/main.CreateUserTokenPayload'
       produces:
       - application/json
       responses:
         "200":
-          description: Token
+          description: User logged in
           schema:
-            type: string
+            $ref: '#/definitions/store.User'
         "400":
           description: Bad Request
           schema: {}
@@ -253,7 +237,7 @@ paths:
       summary: Creates a token
       tags:
       - authentication
-  /authentication/user:
+  /authentication/register:
     post:
       consumes:
       - application/json
@@ -282,6 +266,30 @@ paths:
       tags:
       - authentication
   /food:
+    get:
+      consumes:
+      - application/json
+      description: Fetches all food in the database
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/store.Food'
+            type: array
+        "404":
+          description: Not Found
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Fetches all food
+      tags:
+      - foods
     post:
       consumes:
       - application/json
@@ -389,7 +397,7 @@ paths:
       summary: Creates a meal entry
       tags:
       - meal entrys
-  /meal/{id}:
+  /meals/{id}:
     delete:
       consumes:
       - application/json
@@ -399,7 +407,7 @@ paths:
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -416,6 +424,34 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Deletes a meal entry
+      tags:
+      - meal entrys
+    get:
+      consumes:
+      - application/json
+      description: Get a meal entry by ID
+      parameters:
+      - description: Meal ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            $ref: '#/definitions/store.MealEntry'
+        "404":
+          description: Not Found
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Gets a meal entry
       tags:
       - meal entrys
     patch:
@@ -573,6 +609,32 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Activates/Register a user
+      tags:
+      - users
+  /users/self:
+    get:
+      consumes:
+      - application/json
+      description: Fetches the currently logged in user profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/store.User'
+        "400":
+          description: Bad Request
+          schema: {}
+        "404":
+          description: Not Found
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Fetches the currently logged in user profile
       tags:
       - users
 securityDefinitions:
