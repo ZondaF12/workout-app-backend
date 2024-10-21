@@ -1,6 +1,12 @@
 package main
 
 import (
+	"context"
+	"errors"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -125,7 +131,44 @@ func (app *Application) mount() *fiber.App {
 }
 
 func (app *Application) run(router *fiber.App) error {
+	// Channel for shutdown errors
+	shutdown := make(chan error, 1)
+
+	// Graceful shutdown goroutine
+	go func() {
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+		s := <-quit
+
+		app.logger.Infow("signal caught", "signal", s.String())
+
+		// Create context with timeout for shutdown
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		// Shutdown with context
+		if err := router.ShutdownWithContext(ctx); err != nil {
+			app.logger.Errorw("shutdown error", "error", err)
+			shutdown <- err
+			return
+		}
+
+		shutdown <- nil
+	}()
+
 	app.logger.Infow("Starting server on", "addr", app.config.addr, "env", app.config.env)
 
-	return router.Listen(app.config.addr)
+	err := router.Listen(app.config.addr)
+	if !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
+	err = <-shutdown
+	if err != nil {
+		return err
+	}
+
+	app.logger.Infow("server has stopped", "addr", app.config.addr, "env", app.config.env)
+
+	return nil
 }
