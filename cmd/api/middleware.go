@@ -133,3 +133,14 @@ func (app *Application) checkMealOwnership() fiber.Handler {
 		return app.forbiddenResponse(c)
 	}
 }
+
+func (app *Application) RateLimiterMiddleware() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		if app.config.rateLimiter.Enabled {
+			if allow, retryAfter := app.rateLimiter.Allow(c.IP()); !allow {
+				return app.rateLimitExceededResponse(c, retryAfter.String())
+			}
+		}
+		return c.Next()
+	}
+}

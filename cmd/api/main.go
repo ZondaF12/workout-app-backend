@@ -10,6 +10,7 @@ import (
 	"github.com/zondaf12/workout-app-backend/internal/db"
 	"github.com/zondaf12/workout-app-backend/internal/env"
 	"github.com/zondaf12/workout-app-backend/internal/mailer"
+	"github.com/zondaf12/workout-app-backend/internal/ratelimiter"
 	"github.com/zondaf12/workout-app-backend/internal/store"
 	"github.com/zondaf12/workout-app-backend/internal/store/cache"
 	"go.uber.org/zap"
@@ -69,6 +70,11 @@ func main() {
 				iss:    env.GetString("AUTH_TOKEN_ISSUER", "workoutapp"),
 			},
 		},
+		rateLimiter: ratelimiter.Config{
+			RequestsPerTimeFrame: env.GetInt("RATE_LIMIT_REQUESTS", 20),
+			TimeFrame:            time.Second * 5,
+			Enabled:              env.GetBool("RATE_LIMIT_ENABLED", true),
+		},
 	}
 
 	// Logger
@@ -106,6 +112,12 @@ func main() {
 		cfg.auth.token.iss,
 	)
 
+	// Rate limiter
+	rateLimiter := ratelimiter.NewFixedWindowLimiter(
+		cfg.rateLimiter.RequestsPerTimeFrame,
+		cfg.rateLimiter.TimeFrame,
+	)
+
 	store := store.NewStorage(db)
 	cacheStorage := cache.NewRedisStorage(rdb)
 
@@ -116,6 +128,7 @@ func main() {
 		logger:        logger,
 		mailer:        mailer,
 		authenticator: jwtAuthenticator,
+		rateLimiter:   rateLimiter,
 	}
 
 	router := app.mount()

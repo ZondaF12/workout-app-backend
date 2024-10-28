@@ -16,6 +16,7 @@ import (
 	"github.com/zondaf12/workout-app-backend/docs" // This is required to load the swagger docs
 	"github.com/zondaf12/workout-app-backend/internal/auth"
 	"github.com/zondaf12/workout-app-backend/internal/mailer"
+	"github.com/zondaf12/workout-app-backend/internal/ratelimiter"
 	"github.com/zondaf12/workout-app-backend/internal/store"
 	"github.com/zondaf12/workout-app-backend/internal/store/cache"
 	"go.uber.org/zap"
@@ -28,16 +29,18 @@ type Application struct {
 	logger        *zap.SugaredLogger
 	mailer        mailer.Client
 	authenticator auth.Authenticator
+	rateLimiter   ratelimiter.Limiter
 }
 
 type Config struct {
-	addr     string
-	db       dbConfig
-	env      string
-	apiUrl   string
-	mail     mailConfig
-	auth     authConfig
-	redisCfg redisConfig
+	addr        string
+	db          dbConfig
+	env         string
+	apiUrl      string
+	mail        mailConfig
+	auth        authConfig
+	redisCfg    redisConfig
+	rateLimiter ratelimiter.Config
 }
 
 type redisConfig struct {
@@ -98,6 +101,7 @@ func (app *Application) mount() *fiber.App {
 	router.Use(logger.New(logger.Config{
 		Format: "[${ip}]:${port} ${status} - ${method} ${path}\n",
 	}))
+	router.Use(app.RateLimiterMiddleware())
 
 	v1 := router.Group("/v1")
 

@@ -49,3 +49,11 @@ func (app *Application) forbiddenResponse(c *fiber.Ctx) error {
 
 	return writeJSONError(c, http.StatusForbidden, "forbidden")
 }
+
+func (app *Application) rateLimitExceededResponse(c *fiber.Ctx, retryAfter string) error {
+	app.logger.Warnw("rate limit exceeded", "method", c.Method(), "path", c.Path())
+
+	c.Set("Retry-After", retryAfter)
+
+	return writeJSONError(c, http.StatusTooManyRequests, "rate limit exceeded, retry after:"+retryAfter)
+}
